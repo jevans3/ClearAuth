@@ -129,6 +129,28 @@ When `fhir-core` pends a request and `CLEARAUTH_REVIEWCOPILOT_URL` is set, the
 copilot's recommendation is attached to the `ClaimResponse` as a process note
 for the human reviewer.
 
+## How to contribute
+
+Contributions are welcome — payer interop needs more open implementations, not fewer. See [CONTRIBUTING.md](CONTRIBUTING.md) for ground rules (never-deny invariant, evidence contract, synthetic data only). To get started:
+
+1. **Star ⭐ this repo** so more payer engineers find it, and **fork it** to your account.
+2. Clone your fork and create a feature branch:
+   ```bash
+   git clone https://github.com/<your-username>/ClearAuth.git
+   cd ClearAuth
+   git checkout -b feature/my-change
+   ```
+3. Set up and verify both services locally:
+   ```bash
+   cd services/fhir-core && mvn verify && cd ../..
+   cd services/review-copilot && pip install -r requirements-dev.txt
+   python -m pytest tests/ -q && python eval/run_eval.py
+   ```
+4. Make your change. Add or update tests — and eval cases if you touch matching logic (90% accuracy gate).
+5. Run the full stack once to smoke-test: `docker compose up --build`, then submit a request from `http://localhost:8080/portal.html`.
+6. Commit with a clear message, push to your fork, and open a pull request describing **what** changed and **why**. Both CI jobs must be green.
+7. Good first issues: new medical-necessity policies (`services/review-copilot/app/policies/`), more eval cases, additional X12 segments, dashboard improvements.
+
 ## Compliance & data
 
 All patient data in this repo is **synthetic**. Policy rules are illustrative, authored for this project — not payer proprietary content. Apache-2.0 licensed.
