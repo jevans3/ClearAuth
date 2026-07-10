@@ -5,8 +5,20 @@ services:
       - "8080:8080"
     environment:
       - JAVA_OPTS=-Xmx512m
+      - CLEARAUTH_REVIEWCOPILOT_URL=http://review-copilot:8090
+    depends_on:
+      - review-copilot
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/metrics"]
       interval: 15s
       timeout: 5s
       retries: 5
+
+  review-copilot:
+    build: ./services/review-copilot
+    ports:
+      - "8090:8090"
+    environment:
+      # Optional: enables LLM paraphrase matching (falls back to deterministic
+      # keyword matching when unset). Evidence quotes are always verified.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}

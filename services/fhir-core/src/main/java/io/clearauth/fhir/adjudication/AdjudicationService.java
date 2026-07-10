@@ -34,10 +34,13 @@ public class AdjudicationService {
 
     private final PolicyCatalog policyCatalog;
     private final PaRequestRepository repository;
+    private final ReviewCopilotClient reviewCopilot;
 
-    public AdjudicationService(PolicyCatalog policyCatalog, PaRequestRepository repository) {
+    public AdjudicationService(PolicyCatalog policyCatalog, PaRequestRepository repository,
+                               ReviewCopilotClient reviewCopilot) {
         this.policyCatalog = policyCatalog;
         this.repository = repository;
+        this.reviewCopilot = reviewCopilot;
     }
 
     public Bundle adjudicate(Bundle requestBundle) {
@@ -62,6 +65,14 @@ public class AdjudicationService {
         }
         if (claim.getItem().isEmpty()) {
             throw new InvalidRequestException("Claim contains no items to adjudicate");
+        }
+
+        if (!allApproved && reviewCopilot.isEnabled()) {
+            reviewCopilot.recommend(
+                            claim.getItemFirstRep().getProductOrService().getCodingFirstRep().getCode(),
+                            extractDiagnosisCodes(claim),
+                            "")
+                    .ifPresent(notes::add);
         }
 
         String disposition = allApproved ? "Approved" : "Pended for clinical review";
@@ -100,6 +111,20 @@ public class AdjudicationService {
             default -> new ItemDecision(false,
                     "Code " + procedureCode + ": pended for clinical review per policy " + rule.policyId());
         };
+    }
+
+    private List<String> extractDiagnosisCodes(Claim claim) {
+        List<String> codes = new ArrayList<>();
+        for (Claim.DiagnosisComponent dx : claim.getDiagnosis()) {
+            if (dx.getDiagnosis() instanceof CodeableConcept concept) {
+                for (Coding coding : concept.getCoding()) {
+                    if (coding.getCode() != null) {
+                        codes.add(coding.getCode());
+                    }
+                }
+            }
+        }
+        return codes;
     }
 
     private boolean claimHasApprovedDiagnosis(Claim claim, List<String> prefixes) {

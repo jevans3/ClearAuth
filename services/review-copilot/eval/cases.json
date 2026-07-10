@@ -1,0 +1,110 @@
+[
+  {
+    "id": "mri-brain-migraine-failed-meds",
+    "request": {
+      "procedure_code": "70551",
+      "diagnosis_codes": ["G43.909"],
+      "clinical_note": "Chronic migraine, failed medication trial of two preventives over 10 weeks."
+    },
+    "expected": "approve"
+  },
+  {
+    "id": "mri-brain-red-flag",
+    "request": {
+      "procedure_code": "70551",
+      "diagnosis_codes": ["R51.9"],
+      "clinical_note": "Thunderclap onset headache this morning with photophobia."
+    },
+    "expected": "approve"
+  },
+  {
+    "id": "mri-brain-no-note",
+    "request": {
+      "procedure_code": "70551",
+      "diagnosis_codes": ["G43.909"],
+      "clinical_note": ""
+    },
+    "expected": "pend"
+  },
+  {
+    "id": "mri-brain-wrong-dx",
+    "request": {
+      "procedure_code": "70551",
+      "diagnosis_codes": ["E11.9"],
+      "clinical_note": "Failed medication trial documented."
+    },
+    "expected": "pend"
+  },
+  {
+    "id": "mri-lspine-radiculopathy-pt",
+    "request": {
+      "procedure_code": "72148",
+      "diagnosis_codes": ["M54.16"],
+      "clinical_note": "Lumbar radiculopathy. Completed 6 weeks physical therapy plus NSAIDs, symptoms persist."
+    },
+    "expected": "approve"
+  },
+  {
+    "id": "mri-lspine-cauda-equina",
+    "request": {
+      "procedure_code": "72148",
+      "diagnosis_codes": ["G83.4"],
+      "clinical_note": "New saddle anesthesia and urinary retention, concern for cauda equina."
+    },
+    "expected": "approve"
+  },
+  {
+    "id": "mri-lspine-acute-no-conservative",
+    "request": {
+      "procedure_code": "72148",
+      "diagnosis_codes": ["M54.16"],
+      "clinical_note": "Back pain for 5 days after lifting."
+    },
+    "expected": "pend"
+  },
+  {
+    "id": "tka-full-workup",
+    "request": {
+      "procedure_code": "27447",
+      "diagnosis_codes": ["M17.11"],
+      "clinical_note": "Kellgren-Lawrence grade 4 changes. Failed conservative management including physical therapy and corticosteroid injection over 3 months."
+    },
+    "expected": "approve"
+  },
+  {
+    "id": "tka-no-imaging-evidence",
+    "request": {
+      "procedure_code": "27447",
+      "diagnosis_codes": ["M17.11"],
+      "clinical_note": "Knee pain, completed 3 months physical therapy."
+    },
+    "expected": "pend"
+  },
+  {
+    "id": "tka-no-conservative-trial",
+    "request": {
+      "procedure_code": "27447",
+      "diagnosis_codes": ["M17.11"],
+      "clinical_note": "Bone-on-bone changes on standing films."
+    },
+    "expected": "pend"
+  },
+  {
+    "id": "unknown-procedure",
+    "request": {
+      "procedure_code": "J3490",
+      "diagnosis_codes": ["E11.9"],
+      "clinical_note": "Requesting unclassified biologic."
+    },
+    "expected": "pend"
+  },
+  {
+    "id": "free-text-routing-tka",
+    "request": {
+      "procedure_code": null,
+      "diagnosis_codes": ["M17.11"],
+      "clinical_note": "Total knee arthroplasty requested. Severe osteoarthritis with joint space narrowing; failed conservative management over three months."
+    },
+    "expected": "approve"
+  }
+]
