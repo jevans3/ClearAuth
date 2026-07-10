@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClearAuth · Provider Portal</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --text:#e2e8f0; --muted:#94a3b8;
+          --green:#34d399; --amber:#fbbf24; --blue:#60a5fa; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,sans-serif; padding:24px; max-width:1100px; margin:auto; }
+  header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; }
+  h1 { font-size:20px; } h1 span { color:var(--blue); }
+  nav a { color:var(--muted); text-decoration:none; }
+  nav a:hover { color:var(--text); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px; }
+  .panel h2 { font-size:14px; color:var(--muted); margin-bottom:14px; text-transform:uppercase; letter-spacing:.05em; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  input, select, textarea { width:100%; background:var(--bg); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:9px 11px; font:inherit; }
+  textarea { min-height:110px; resize:vertical; }
+  button { margin-top:16px; background:var(--blue); color:#0f172a; font-weight:700; border:0;
+    border-radius:8px; padding:11px 22px; cursor:pointer; font-size:15px; }
+  button:hover { filter:brightness(1.1); }
+  .result { margin-top:4px; }
+  .decision { font-size:22px; font-weight:800; margin-bottom:8px; }
+  .decision.approved { color:var(--green); } .decision.pended { color:var(--amber); }
+  .note { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    margin-top:8px; font-size:13px; }
+  .authref { font-family:ui-monospace,monospace; background:#064e3b; color:var(--green);
+    padding:3px 10px; border-radius:6px; }
+  .muted { color:var(--muted); font-size:13px; }
+  @media (max-width:800px){ .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>ClearAuth</span> · Provider Portal</h1>
+  <nav><a href="/index.html">← Payer ops dashboard</a></nav>
+</header>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Submit prior authorization</h2>
+    <label>Service (CPT/HCPCS)</label>
+    <select id="cpt">
+      <option value="70551">70551 — MRI brain without contrast</option>
+      <option value="72148">72148 — MRI lumbar spine</option>
+      <option value="27447">27447 — Total knee arthroplasty</option>
+      <option value="97110">97110 — Physical therapy</option>
+      <option value="J3490">J3490 — Unclassified drug</option>
+    </select>
+    <label>Primary diagnosis (ICD-10)</label>
+    <input id="dx" value="G43.909" placeholder="e.g. G43.909">
+    <label>Priority</label>
+    <select id="priority"><option value="normal">Standard (7-day SLA)</option><option value="stat">Expedited (72-hour SLA)</option></select>
+    <label>Clinical justification (feeds DTR questionnaire response)</label>
+    <textarea id="note" placeholder="Symptom duration, conservative therapy tried and outcome, red-flag findings..."></textarea>
+    <button onclick="submitPa()">Submit request</button>
+    <p class="muted" style="margin-top:10px">Sent as a FHIR PAS bundle to <code>Claim/$submit</code>. Synthetic data only.</p>
+  </div>
+
+  <div class="panel">
+    <h2>Decision</h2>
+    <div id="result" class="result muted">No submission yet.</div>
+  </div>
+</div>
+
+<script>
+async function submitPa() {
+  const cpt = document.getElementById('cpt').value;
+  const dx = document.getElementById('dx').value.trim();
+  const priority = document.getElementById('priority').value;
+  const note = document.getElementById('note').value.trim();
+  const claimId = 'portal-' + Date.now();
+
+  const bundle = {
+    resourceType: 'Bundle', type: 'collection',
+    entry: [
+      { fullUrl: 'urn:uuid:' + claimId, resource: {
+          resourceType: 'Claim', id: claimId, status: 'active',
+          type: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/claim-type', code: 'professional' }] },
+          use: 'preauthorization',
+          priority: { coding: [{ system: 'http://terminology.hl7.org/CodeSystem/processpriority', code: priority }] },
+          patient: { reference: 'urn:uuid:portal-patient' },
+          created: new Date().toISOString(),
+          provider: { reference: 'urn:uuid:portal-practitioner' },
+          diagnosis: dx ? [{ sequence: 1, diagnosisCodeableConcept: { coding: [
+            { system: 'http://hl7.org/fhir/sid/icd-10-cm', code: dx }] } }] : [],
+          item: [{ sequence: 1, productOrService: { coding: [
+            { system: 'http://www.ama-assn.org/go/cpt', code: cpt }] } }]
+      }},
+      { fullUrl: 'urn:uuid:portal-patient', resource: { resourceType: 'Patient', id: 'portal-patient',
+          name: [{ family: 'Portal', given: ['Demo'] }] } },
+      ...(note ? [{ fullUrl: 'urn:uuid:portal-qr', resource: {
+          resourceType: 'QuestionnaireResponse', id: 'portal-qr', status: 'completed',
+          item: [{ linkId: 'clinical-justification', text: 'Clinical justification',
+                   answer: [{ valueString: note }] }] } }] : [])
+    ]
+  };
+
+  const el = document.getElementById('result');
+  el.className = 'result muted'; el.textContent = 'Submitting…';
+  try {
+    const response = await fetch('/fhir/Claim/$submit', {
+      method: 'POST', headers: { 'Content-Type': 'application/fhir+json' },
+      body: JSON.stringify(bundle)
+    });
+    const body = await response.json();
+    const cr = (body.entry || []).map(e => e.resource).find(r => r.resourceType === 'ClaimResponse');
+    if (!cr) { el.textContent = 'Unexpected response: ' + JSON.stringify(body).slice(0, 300); return; }
+    const approved = cr.disposition && cr.disposition.startsWith('Approved');
+    el.className = 'result';
+    el.innerHTML =
+      `<div class="decision ${approved ? 'approved' : 'pended'}">${cr.disposition}</div>` +
+      (cr.preAuthRef ? `<p>Authorization number: <span class="authref">${cr.preAuthRef}</span></p>` : '') +
+      (cr.preAuthPeriod ? `<p class="muted">Valid ${new Date(cr.preAuthPeriod.start).toLocaleDateString()} – ${new Date(cr.preAuthPeriod.end).toLocaleDateString()}</p>` : '') +
+      ((cr.processNote || []).map(n => `<div class="note">${n.text}</div>`).join(''));
+  } catch (error) {
+    el.textContent = 'Submission failed: ' + error;
+  }
+}
+</script>
+</body>
+</html>

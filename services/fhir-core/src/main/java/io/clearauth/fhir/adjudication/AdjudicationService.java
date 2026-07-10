@@ -71,7 +71,7 @@ public class AdjudicationService {
             reviewCopilot.recommend(
                             claim.getItemFirstRep().getProductOrService().getCodingFirstRep().getCode(),
                             extractDiagnosisCodes(claim),
-                            "")
+                            extractQuestionnaireText(requestBundle))
                     .ifPresent(notes::add);
         }
 
@@ -111,6 +111,34 @@ public class AdjudicationService {
             default -> new ItemDecision(false,
                     "Code " + procedureCode + ": pended for clinical review per policy " + rule.policyId());
         };
+    }
+
+    /**
+     * DTR integration: answers from any QuestionnaireResponse in the submit
+     * bundle become clinical evidence for the review copilot.
+     */
+    private String extractQuestionnaireText(Bundle bundle) {
+        StringBuilder text = new StringBuilder();
+        bundle.getEntry().stream()
+                .map(Bundle.BundleEntryComponent::getResource)
+                .filter(org.hl7.fhir.r4.model.QuestionnaireResponse.class::isInstance)
+                .map(org.hl7.fhir.r4.model.QuestionnaireResponse.class::cast)
+                .forEach(qr -> appendItems(qr.getItem(), text));
+        return text.toString().trim();
+    }
+
+    private void appendItems(List<org.hl7.fhir.r4.model.QuestionnaireResponse
+            .QuestionnaireResponseItemComponent> items, StringBuilder text) {
+        for (var item : items) {
+            for (var answer : item.getAnswer()) {
+                if (answer.hasValueStringType()) {
+                    text.append(answer.getValueStringType().getValue()).append(". ");
+                } else if (answer.hasValueBooleanType() && answer.getValueBooleanType().booleanValue()) {
+                    text.append(item.getText()).append(". ");
+                }
+            }
+            appendItems(item.getItem(), text);
+        }
     }
 
     private List<String> extractDiagnosisCodes(Claim claim) {

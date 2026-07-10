@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClearAuth · Payer Ops</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --line:#334155; --text:#e2e8f0; --muted:#94a3b8;
+          --green:#34d399; --amber:#fbbf24; --red:#f87171; --blue:#60a5fa; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,sans-serif; padding:24px; }
+  header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; }
+  h1 { font-size:20px; } h1 span { color:var(--blue); }
+  nav a { color:var(--muted); text-decoration:none; margin-left:16px; }
+  nav a:hover { color:var(--text); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .card .value { font-size:26px; font-weight:700; }
+  .card .label { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  .green{color:var(--green)} .amber{color:var(--amber)} .red{color:var(--red)} .blue{color:var(--blue)}
+  .row { display:grid; grid-template-columns:1fr 2fr; gap:12px; margin-bottom:20px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .panel h2 { font-size:14px; color:var(--muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:.05em; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  .pill { padding:2px 9px; border-radius:99px; font-size:12px; font-weight:600; }
+  .pill.APPROVED { background:#064e3b; color:var(--green); }
+  .pill.PENDED { background:#78350f; color:var(--amber); }
+  .pill.DENIED { background:#7f1d1d; color:var(--red); }
+  .overdue { color:var(--red); font-weight:700; }
+  footer { color:var(--muted); font-size:12px; margin-top:18px; }
+  @media (max-width:800px){ .row{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>ClearAuth</span> · Payer Operations</h1>
+  <nav><a href="/portal.html">Provider portal →</a></nav>
+</header>
+
+<div class="cards" id="cards"></div>
+
+<div class="row">
+  <div class="panel"><h2>Decision mix</h2><canvas id="mix" height="220"></canvas></div>
+  <div class="panel"><h2>Prior authorization queue</h2>
+    <table>
+      <thead><tr><th>#</th><th>Claim</th><th>Service</th><th>Priority</th><th>Status</th><th>SLA due</th></tr></thead>
+      <tbody id="queue"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>CMS-0057-F public PA metrics · auto-refreshes every 15s · all data synthetic</footer>
+
+<script>
+let chart;
+async function refresh() {
+  const [metrics, requests] = await Promise.all([
+    fetch('/api/metrics').then(r => r.json()),
+    fetch('/api/requests?limit=50').then(r => r.json()),
+  ]);
+
+  document.getElementById('cards').innerHTML = [
+    ['Total requests', metrics.totalRequests, 'blue'],
+    ['Approved', metrics.approved, 'green'],
+    ['Pended', metrics.pended, 'amber'],
+    ['Approval rate', metrics.approvalRate + '%', 'blue'],
+    ['Avg decision (s)', Math.round(metrics.avgDecisionSeconds * 10) / 10, 'blue'],
+    ['Past SLA deadline', metrics.openPastSlaDeadline, metrics.openPastSlaDeadline > 0 ? 'red' : 'green'],
+  ].map(([label, value, tone]) =>
+    `<div class="card"><div class="value ${tone}">${value}</div><div class="label">${label}</div></div>`).join('');
+
+  document.getElementById('queue').innerHTML = requests.map(r => `
+    <tr><td>${r.id}</td><td>${r.claimId ?? '—'}</td><td>${r.serviceCode}</td>
+    <td>${r.priority}</td><td><span class="pill ${r.status}">${r.status}</span></td>
+    <td class="${r.overdue ? 'overdue' : ''}">${r.dueAt ? new Date(r.dueAt).toLocaleString() : '—'}${r.overdue ? ' ⚠' : ''}</td></tr>`
+  ).join('') || '<tr><td colspan="6" style="color:var(--muted)">No requests yet — submit one from the provider portal.</td></tr>';
+
+  const data = [metrics.approved, metrics.pended, metrics.denied];
+  if (!chart) {
+    chart = new Chart(document.getElementById('mix'), {
+      type: 'doughnut',
+      data: { labels: ['Approved', 'Pended', 'Denied (human only)'],
+              datasets: [{ data, backgroundColor: ['#34d399', '#fbbf24', '#f87171'], borderWidth: 0 }] },
+      options: { plugins: { legend: { labels: { color: '#e2e8f0' } } }, cutout: '65%' }
+    });
+  } else { chart.data.datasets[0].data = data; chart.update(); }
+}
+refresh();
+setInterval(refresh, 15000);
+</script>
+</body>
+</html>

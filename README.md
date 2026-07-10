@@ -8,23 +8,27 @@
 
 ```mermaid
 flowchart LR
-    EHR[Provider EHR / Portal] -->|"FHIR R4: Claim/$submit (PAS bundle)"| CORE
+    EHR[Provider EHR] -->|"CDS Hooks: order-select (CRD)"| CRD
+    EHR -->|"DTR Questionnaire"| DTR
+    PORTAL[Provider Portal<br/>/portal.html] -->|"FHIR R4: Claim/$submit (PAS bundle)"| PAS
 
     subgraph CORE[fhir-core · Spring Boot + HAPI FHIR]
+        CRD[CRD CDS Service<br/>prior auth required?]
+        DTR[DTR Generator<br/>Questionnaire from policy]
         PAS[PAS Operation Provider] --> ADJ[Adjudication Engine<br/>policy rules, never auto-denies]
         ADJ --> SLA[SLA Tracker<br/>72h expedited / 7d standard]
         ADJ --> LOG[(Decision Log<br/>H2 / PostgreSQL)]
+        X12[X12 278 Mapper<br/>legacy UM bridge]
     end
 
-    LOG --> MET["/api/metrics<br/>CMS public PA metrics"]
+    LOG --> MET["/api/metrics + /api/requests<br/>CMS public PA metrics"]
+    MET --> OPS[Payer Ops Dashboard<br/>/index.html]
     ADJ -->|pend| REVIEW
 
     subgraph REVIEW[review-copilot · FastAPI]
         ROUTE[Policy Router<br/>code lookup + BM25] --> MATCH[Criteria Matcher<br/>deterministic + optional LLM]
         MATCH --> CITE[Evidence Citer<br/>verbatim-quote contract]
     end
-
-    LOG -.-> DASH[Payer Ops + Provider Dashboards<br/>Phase 4]
 ```
 
 **Design stance:** the engine **approves or pends — it never auto-denies**. Denials require human clinical review by design (the legally defensible posture after the industry's auto-denial lawsuits).
@@ -39,13 +43,30 @@ docker compose up --build
 cd services/fhir-core && mvn spring-boot:run
 ```
 
-Submit a prior-auth request:
+Then open **http://localhost:8080/portal.html** (provider portal) and
+**http://localhost:8080/index.html** (payer ops dashboard), or use the CLI:
 
 ```bash
 ./scripts/submit-sample.sh                     # MRI brain + migraine dx -> Approved
 ./scripts/submit-sample.sh samples/pa-request-pend.json   # unclassified drug -> Pended
 curl -s localhost:8080/api/metrics | jq        # CMS-style PA metrics
+curl -s localhost:8080/cds-services | jq       # CRD discovery (CDS Hooks)
+curl -s localhost:8080/api/dtr/questionnaire/70551 | jq   # DTR questionnaire
+curl -s -X POST localhost:8080/api/x12/278/request \
+  -H "Content-Type: application/fhir+json" \
+  --data @samples/pa-request-approve.json      # FHIR -> X12 278
 ```
+
+Production-style stack (PostgreSQL, API key, restart policies):
+
+```bash
+cp .env.example .env   # set DB_PASSWORD (and optionally CLEARAUTH_APIKEY, ANTHROPIC_API_KEY)
+docker compose -f docker-compose.prod.yml up --build -d
+python3 scripts/loadtest.py --requests 1000 --concurrency 50
+```
+
+See [SECURITY.md](SECURITY.md) for the production checklist and
+[CONTRIBUTING.md](CONTRIBUTING.md) for dev setup.
 
 ## What works today (Phase 1)
 
@@ -59,14 +80,21 @@ curl -s localhost:8080/api/metrics | jq        # CMS-style PA metrics
 | Review copilot: policy retrieval (BM25 from scratch) + criteria matching with cited evidence | Specific reason for decisions | ✅ |
 | Eval harness gating CI: accuracy + evidence-contract (no fabricated citations) | — | ✅ |
 | Optional LLM paraphrase matching (Claude) with verbatim-quote verification | — | ✅ |
+| CRD: CDS Hooks `order-select` service answering "is prior auth required?" | Coverage requirements discovery | ✅ |
+| DTR: FHIR Questionnaire generated from the governing policy; answers feed adjudication | Documentation requirements | ✅ |
+| X12 278 request/response mapping for legacy UM systems | — | ✅ |
+| Provider portal + payer ops dashboard (SLA queue, decision mix, live metrics) | Transparency | ✅ |
+| PostgreSQL profile, actuator health, optional API-key gate, load-test script | — | ✅ |
 
 ## Roadmap
 
 - [x] **Phase 1 — FHIR core:** PAS `$submit` happy path, rules engine, SLA tracking, metrics
 - [x] **Phase 2 — Clinical review copilot:** retrieval over medical-necessity policies, evidence-cited approve/pend recommendations, eval harness, optional LLM matching
-- [ ] **Phase 3 — Interop depth:** Da Vinci CRD hooks + DTR questionnaires, X12 278 ↔ FHIR mapper, Inferno conformance runs
-- [ ] **Phase 4 — Dashboards:** provider status portal + payer ops queue (React/TS)
-- [ ] **Phase 5 — Scale:** PostgreSQL, event sourcing, 10K req/hr load test
+- [x] **Phase 3 — Interop depth:** Da Vinci CRD hooks (CDS Hooks `order-select`), DTR questionnaire generation, simplified X12 278 mapper, FHIR CapabilityStatement
+- [x] **Phase 4 — Dashboards:** provider portal (`/portal.html`) + payer ops queue with SLA alerts (`/index.html`), zero-build static SPA served by fhir-core
+- [x] **Phase 5 — Production hardening:** PostgreSQL profile + prod compose, actuator health, optional API-key gate, load-test script
+
+**Next up:** Inferno/Touchstone conformance runs against the Da Vinci PAS test kit; OAuth2/SMART-on-FHIR gateway; event-sourced decision log.
 
 ## Repo layout
 

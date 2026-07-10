@@ -1,0 +1,53 @@
+# Production-style stack: PostgreSQL persistence, API-key gate, restart policies.
+#   cp .env.example .env   (set secrets)
+#   docker compose -f docker-compose.prod.yml up --build -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=clearauth
+      - POSTGRES_USER=clearauth
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clearauth"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  fhir-core:
+    build: ./services/fhir-core
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=postgres
+      - DB_URL=jdbc:postgresql://postgres:5432/clearauth
+      - DB_USER=clearauth
+      - DB_PASSWORD=${DB_PASSWORD}
+      - CLEARAUTH_APIKEY=${CLEARAUTH_APIKEY:-}
+      - CLEARAUTH_REVIEWCOPILOT_URL=http://review-copilot:8090
+      - JAVA_OPTS=-Xmx768m
+    depends_on:
+      postgres:
+        condition: service_healthy
+      review-copilot:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  review-copilot:
+    build: ./services/review-copilot
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+volumes:
+  pgdata:
