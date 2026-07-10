@@ -1,0 +1,97 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "fullUrl": "urn:uuid:claim-drug-001",
+      "resource": {
+        "resourceType": "Claim",
+        "id": "claim-drug-001",
+        "status": "active",
+        "type": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/claim-type",
+              "code": "pharmacy"
+            }
+          ]
+        },
+        "use": "preauthorization",
+        "priority": {
+          "coding": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/processpriority",
+              "code": "stat"
+            }
+          ]
+        },
+        "patient": { "reference": "urn:uuid:patient-2" },
+        "created": "2026-07-10T12:00:00Z",
+        "provider": { "reference": "urn:uuid:practitioner-2" },
+        "insurance": [
+          {
+            "sequence": 1,
+            "focal": true,
+            "coverage": { "reference": "urn:uuid:coverage-2" }
+          }
+        ],
+        "diagnosis": [
+          {
+            "sequence": 1,
+            "diagnosisCodeableConcept": {
+              "coding": [
+                {
+                  "system": "http://hl7.org/fhir/sid/icd-10-cm",
+                  "code": "E11.9",
+                  "display": "Type 2 diabetes mellitus without complications"
+                }
+              ]
+            }
+          }
+        ],
+        "item": [
+          {
+            "sequence": 1,
+            "productOrService": {
+              "coding": [
+                {
+                  "system": "https://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets",
+                  "code": "J3490",
+                  "display": "Unclassified drug"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:patient-2",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "patient-2",
+        "name": [{ "family": "Okafor", "given": ["David"] }],
+        "gender": "male",
+        "birthDate": "1962-11-03"
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:coverage-2",
+      "resource": {
+        "resourceType": "Coverage",
+        "id": "coverage-2",
+        "status": "active",
+        "beneficiary": { "reference": "urn:uuid:patient-2" },
+        "payor": [{ "display": "ClearAuth Demo Health Plan" }]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:practitioner-2",
+      "resource": {
+        "resourceType": "Practitioner",
+        "id": "practitioner-2",
+        "name": [{ "family": "Singh", "given": ["Priya"] }]
+      }
+    }
+  ]
+}

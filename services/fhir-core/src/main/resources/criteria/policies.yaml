@@ -1,0 +1,39 @@
+# ClearAuth open policy catalog (illustrative, authored for this project).
+# action: approve = auto-approve
+#         review  = approve when claim diagnosis matches an approved ICD-10 prefix, else pend
+#         pend    = always route to human clinical review (ClearAuth never auto-denies)
+defaultAction: pend
+
+policies:
+  - code: "70551"
+    description: "MRI brain without contrast"
+    action: review
+    approvedDiagnosisPrefixes: ["G43", "R51", "S06", "C71", "G40"]
+    policyId: "MP-IMG-001"
+
+  - code: "72148"
+    description: "MRI lumbar spine without contrast"
+    action: review
+    approvedDiagnosisPrefixes: ["M51", "M54.1", "G83", "M48"]
+    policyId: "MP-IMG-002"
+
+  - code: "97110"
+    description: "Therapeutic exercises (physical therapy)"
+    action: approve
+    policyId: "MP-PT-004"
+
+  - code: "99213"
+    description: "Office visit, established patient"
+    action: approve
+    policyId: "MP-EM-001"
+
+  - code: "J3490"
+    description: "Unclassified drug"
+    action: pend
+    policyId: "MP-RX-999"
+
+  - code: "27447"
+    description: "Total knee arthroplasty"
+    action: review
+    approvedDiagnosisPrefixes: ["M17"]
+    policyId: "MP-ORT-012"
