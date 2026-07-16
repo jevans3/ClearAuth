@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearAuth — Open-source CMS-0057-F prior authorization</title>
+<meta name="description" content="Open-source CMS-0057-F prior authorization — FHIR-native intake, auditable adjudication, and SLA enforcement.">
+<style>
+:root{--accent:#26a69a;--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#e6edf3;--muted:#8b949e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.65}
+.wrap{max-width:960px;margin:0 auto;padding:0 20px}
+header{padding:72px 0 48px;text-align:center;background:radial-gradient(ellipse at top,color-mix(in srgb,var(--accent) 18%,transparent),transparent 65%)}
+h1{font-size:2.6rem;margin-bottom:8px}
+.emoji{font-size:3.2rem;display:block;margin-bottom:12px}
+.tagline{color:var(--muted);font-size:1.15rem;max-width:640px;margin:0 auto 24px}
+.btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{padding:10px 22px;border-radius:8px;text-decoration:none;font-weight:600;font-size:.95rem}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-ghost{border:1px solid var(--border);color:var(--text)}
+section{padding:40px 0;border-top:1px solid var(--border)}
+h2{font-size:1.5rem;margin-bottom:16px;color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.chip{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:5px 14px;margin:4px;font-size:.88rem}
+ul.apps{list-style:none}ul.apps li{padding:8px 0 8px 28px;position:relative}
+ul.apps li:before{content:"✦";position:absolute;left:4px;color:var(--accent)}
+#demo{margin-top:8px}
+.demo-hint{color:var(--muted);font-size:.9rem;margin-bottom:14px}
+button.demo-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:.92rem;margin:4px 6px 4px 0}
+button.demo-btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+input[type=range]{accent-color:var(--accent)}
+canvas{background:#0a0e14;border:1px solid var(--border);border-radius:8px;max-width:100%}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:.85rem}
+footer{padding:36px 0;text-align:center;color:var(--muted);font-size:.9rem}
+footer a{color:var(--accent);text-decoration:none}
+.star-cta{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 25%,var(--card)),var(--card));border:1px solid var(--accent);border-radius:12px;padding:24px;text-align:center;margin-top:8px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<span class="emoji">🏥</span>
+<h1>ClearAuth</h1>
+<p class="tagline">Open-source CMS-0057-F prior authorization — FHIR-native intake, auditable adjudication, and SLA enforcement.</p>
+<div class="btns">
+<a class="btn btn-primary" href="https://github.com/AravindB98/ClearAuth">View on GitHub</a>
+<a class="btn btn-ghost" href="#demo-sec">▶ Try the Demo</a>
+</div>
+</div></header>
+<div class="wrap">
+<section><h2>🧒 What is this? (Plain English)</h2><div class="card"><p>When your doctor says you need a treatment, your insurance company often has to approve it first — a process called prior authorization that can take days or weeks of faxes and phone calls. ClearAuth is software that does this digitally: the request, the decision rules, and the approval all happen through standard health-data messages, so patients wait minutes instead of weeks.</p></div></section>
+<section><h2>✨ Key Features</h2><div class="grid"><div class="card"><strong>FHIR PAS intake</strong><p style="color:var(--muted);margin-top:6px">Prior-auth requests arrive as standard FHIR messages, not faxes.</p></div><div class="card"><strong>Auditable adjudication</strong><p style="color:var(--muted);margin-top:6px">Every decision step is logged and explainable.</p></div><div class="card"><strong>SLA enforcement</strong><p style="color:var(--muted);margin-top:6px">Deadlines tracked automatically per CMS-0057-F.</p></div><div class="card"><strong>Compliance-first</strong><p style="color:var(--muted);margin-top:6px">Built around the US federal interoperability mandate.</p></div></div></section>
+<section id="demo-sec"><h2>🕹️ Interactive Demo</h2>
+<p class="demo-hint">Submit a prior-auth request and watch the fax era race against ClearAuth. <em>(Illustrative in-browser simulation of what the real system does.)</em></p>
+<div class="card" id="demo"><button class="demo-btn" onclick="caRun()">📤 Submit prior-auth request (MRI, lumbar spine)</button>
+<div style="margin-top:14px" class="mono">
+<div>📠 Fax era <div style="background:#0a0e14;border:1px solid var(--border);border-radius:6px;height:22px;margin:6px 0"><div id="ca-fax" style="background:#f85149;height:100%;width:0%;border-radius:6px;transition:width .3s"></div></div><span id="ca-faxl" style="color:var(--muted)"></span></div>
+<div style="margin-top:10px">⚡ ClearAuth <div style="background:#0a0e14;border:1px solid var(--border);border-radius:6px;height:22px;margin:6px 0"><div id="ca-ca" style="background:#26a69a;height:100%;width:0%;border-radius:6px;transition:width .3s"></div></div><span id="ca-cal" style="color:var(--muted)"></span></div>
+<div id="ca-steps" style="margin-top:12px;font-size:.82rem"></div></div></div></section>
+<section><h2>🧰 Tech Stack</h2><div><span class="chip">Java</span><span class="chip">HL7 FHIR (Prior Authorization Support / PAS)</span><span class="chip">REST APIs</span><span class="chip">auditable adjudication engine</span><span class="chip">SLA enforcement</span><span class="chip">CMS-0057-F compliance</span></div></section>
+<section><h2>🌍 Real-Life Applications</h2><ul class="apps"><li>Hospitals and clinics submitting prior-auth requests electronically instead of by fax</li><li>Health insurers meeting the CMS-0057-F federal mandate deadlines</li><li>Health-tech vendors embedding compliant prior-auth into EHR workflows</li></ul></section>
+<section><h2>⭐ Support the Project</h2><div class="star-cta">
+<p style="margin-bottom:14px">If this project is useful or interesting to you, <strong>starring ⭐ and forking 🍴 the repo</strong> is the best way to support it and help others find it.</p>
+<div class="btns">
+<a class="btn btn-primary" href="https://github.com/AravindB98/ClearAuth/stargazers">⭐ Star</a>
+<a class="btn btn-ghost" href="https://github.com/AravindB98/ClearAuth/fork">🍴 Fork</a>
+<a class="btn btn-ghost" href="https://github.com/AravindB98/ClearAuth/issues">💬 Contribute</a>
+</div></div></section>
+</div>
+<footer>Built by <a href="https://github.com/AravindB98">Aravind Balaji</a> · <a href="https://aravindbalaji.com">aravindbalaji.com</a> · <a href="https://medium.com/@aravindbalaji25">Medium</a></footer>
+<script>
+
+function caRun(){const fax=document.getElementById('ca-fax'),ca=document.getElementById('ca-ca'),st=document.getElementById('ca-steps');
+st.innerHTML='';fax.style.width='0%';ca.style.width='0%';
+const S=['FHIR PAS Claim received → validated','Coverage rules engine: CPT 72148 requires conservative therapy ✓ (found in record)','Medical-necessity criteria met → auto-approvable','Decision: APPROVED · audit trail #A-1042 written · SLA met (00:00:04)'];
+let i=0;const t=setInterval(()=>{if(i>=S.length){clearInterval(t);return;}
+st.innerHTML+='<div style="color:#26a69a">✓ '+S[i]+'</div>';ca.style.width=((i+1)*25)+'%';i++;
+document.getElementById('ca-cal').textContent='approved in 4 seconds';},700);
+let f=0;const tf=setInterval(()=>{f+=2;fax.style.width=f+'%';
+document.getElementById('ca-faxl').textContent='day '+Math.ceil(f/7)+' of ~14 — waiting on fax callback…';
+if(f>=100){clearInterval(tf);document.getElementById('ca-faxl').textContent='approved after 14 days 😮‍💨';}},400);}
+
+</script>
+</body>
+</html>
