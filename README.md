@@ -154,3 +154,19 @@ Contributions are welcome — payer interop needs more open implementations, not
 ## Compliance & data
 
 All patient data in this repo is **synthetic**. Policy rules are illustrative, authored for this project — not payer proprietary content. Apache-2.0 licensed.
+
+---
+
+## 🧒 Explain Like I'm 5
+
+When your doctor says you need a treatment, your insurance company often has to approve it first — a process called prior authorization that can take days or weeks of faxes and phone calls. ClearAuth is software that does this digitally: the request, the decision rules, and the approval all happen through standard health-data messages, so patients wait minutes instead of weeks.
+
+## 🧰 Tech Stack
+
+Java · HL7 FHIR (Prior Authorization Support / PAS) · REST APIs · auditable adjudication engine · SLA enforcement · CMS-0057-F compliance
+
+## 🌍 Real-Life Applications
+
+- Hospitals and clinics submitting prior-auth requests electronically instead of by fax
+- Health insurers meeting the CMS-0057-F federal mandate deadlines
+- Health-tech vendors embedding compliant prior-auth into EHR workflows
